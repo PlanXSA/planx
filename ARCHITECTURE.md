@@ -30,13 +30,15 @@ adapters → store ←→ engines → app
 | slice | contents                                      | status      |
 |-------|-----------------------------------------------|-------------|
 | 1     | types, DuckDB DDL, MemoryStore, atomic apply  | done        |
-| 1b    | Overpass + MapLibre workbench                 | done        |
-| 1c    | DuckDB SQL contract + OpenFreeMap + CRS helper| in progress |
+| 1b    | Overpass parser + workbench shell             | source done; browser unproven |
+| 1c    | 1) Vite+MapLibre in a browser  2) DuckDB-WASM runs schema.sql  3) download/upload .duckdb (no OPFS) | next |
 | 2     | street ROW / frontage snap                    | later       |
 | 3     | use column + area table + min code            | later       |
 | 4     | GeoJSON / CSV export                          | later       |
 
-Out of v0: massing 3D, Balady without a contract, multi-user, PostGIS, paid basemap.
+Slice 1c locks (from docs/PLANX_SLICE_1C_REVIEW.md): bbox demo cap ~0.02° per side; WASM failure keeps MemoryStore + visible banner; OSM/user overlap is a visible conflict, not a silent row. Save path is file download/upload only.
+
+Out of v0: massing 3D, Balady without a contract, multi-user, PostGIS, paid basemap, OPFS, street section geometry.
 
 ## Repo layout
 

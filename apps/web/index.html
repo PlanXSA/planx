@@ -27,7 +27,12 @@
         <button id="draw-parcel">رسم قطعة</button>
         <button id="draw-street">رسم شارع</button>
         <button id="cancel">إلغاء المسودة</button>
-        <p style="font-size:12px;opacity:.8">نقرة تضيف رأساً. النقرة المزدوجة تغلق وتبني الجدول.</p>
+        <button id="save">حفظ الملف</button>
+        <button id="open">فتح ملف</button>
+        <input id="open-file" type="file" accept="application/json,.json" hidden />
+        <p style="font-size:12px;opacity:.8">نقرة تضيف رأساً. النقرة المزدوجة تغلق وتبني الجدول. الحفظ الآن لقطة JSON حتى يقلع DuckDB.</p>
+        <strong style="font-size:12px">تعارضات</strong>
+        <ul id="conflicts" style="font-size:12px;padding-right:16px;"></ul>
       </div>
       <div id="map"></div>
       <div id="table">

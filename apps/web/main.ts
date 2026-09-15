@@ -1,5 +1,8 @@
 import maplibregl from "maplibre-gl";
 import { MemoryStore } from "../../packages/store/memory.ts";
+import { bootStore } from "../../packages/store/runtime.ts";
+import { parseStore, serializeStore } from "../../packages/store/snapshot.ts";
+import type { Store } from "../../packages/store/types.ts";
 import { isReject, type Feature } from "../../packages/schema/index.ts";
 import { fetchOverpass } from "../../packages/adapters/osm/overpass.ts";
 import { addVertex, closeDraft, type Draft } from "../../packages/engines/draft.ts";
@@ -11,9 +14,11 @@ import {
 } from "../../packages/maps/basemap.ts";
 
 const PROJECT = "demo-riyadh";
-const BBOX = { south: 24.68, west: 46.67, north: 24.72, east: 46.72 };
+/** Expert 1c cap: ~0.02° per side. */
+const BBOX = { south: 24.69, west: 46.685, north: 24.71, east: 46.705 };
 
-const store = new MemoryStore();
+let store: Store = new MemoryStore();
+let engine: "memory" | "duckdb" = "memory";
 const statusEl = document.getElementById("status")!;
 const rowsEl = document.getElementById("rows")!;
 let draft: Draft | null = null;
@@ -130,6 +135,7 @@ map.on("dblclick", async (e) => {
   e.preventDefault();
   const feat = closeDraft(draft, PROJECT);
   draft = null;
+  map.doubleClickZoom.enable();
   paintDraft();
   document.querySelectorAll("#tools button").forEach((b) => b.classList.remove("active"));
   if (!feat) {
@@ -147,6 +153,7 @@ map.on("dblclick", async (e) => {
 
 function arm(kind: Draft["kind"], btn: HTMLElement) {
   draft = { kind, vertices: [] };
+  map.doubleClickZoom.disable();
   document.querySelectorAll("#tools button").forEach((b) => b.classList.remove("active"));
   btn.classList.add("active");
   statusEl.textContent = kind === "parcel" ? "انقر رؤوس القطعة" : "انقر محور الشارع";
@@ -160,6 +167,7 @@ document.getElementById("draw-street")!.addEventListener("click", (e) => {
 });
 document.getElementById("cancel")!.addEventListener("click", () => {
   draft = null;
+  map.doubleClickZoom.enable();
   paintDraft();
   document.querySelectorAll("#tools button").forEach((b) => b.classList.remove("active"));
   statusEl.textContent = "أُلغيت المسودة";
@@ -174,4 +182,39 @@ document.getElementById("import")!.addEventListener("click", async () => {
   } catch (err) {
     statusEl.textContent = err instanceof Error ? err.message : "فشل الجلب";
   }
+});
+
+document.getElementById("save")!.addEventListener("click", async () => {
+  const rows = await store.query({ project_id: PROJECT });
+  const blob = new Blob([serializeStore(rows, engine)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "planx-store.json";
+  a.click();
+  statusEl.textContent = `حُفظت لقطة ${rows.length} معلم (${engine})`;
+});
+
+document.getElementById("open")!.addEventListener("click", () => {
+  document.getElementById("open-file")!.click();
+});
+
+document.getElementById("open-file")!.addEventListener("change", async (ev) => {
+  const file = (ev.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  try {
+    const snap = parseStore(await file.text());
+    store = new MemoryStore();
+    engine = "memory";
+    for (const f of snap.features) await store.put(f);
+    statusEl.textContent = `فُتحت لقطة ${snap.features.length} معلم`;
+    await refresh();
+  } catch (err) {
+    statusEl.textContent = err instanceof Error ? err.message : "ملف غير صالح";
+  }
+});
+
+void bootStore().then((rt) => {
+  store = rt.store;
+  engine = rt.engine;
+  statusEl.textContent = rt.note;
 });

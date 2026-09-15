@@ -5,6 +5,8 @@ import { featuresFromOverpass } from "../packages/adapters/osm/overpass.ts";
 import { addVertex, closeDraft } from "../packages/engines/draft.ts";
 import { upsertFeatureSql, queryFeatureSql } from "../packages/store/sql.ts";
 import { utmEpsgFromLon } from "../packages/geo/crs.ts";
+import { parseStore, serializeStore } from "../packages/store/snapshot.ts";
+import { bootStore } from "../packages/store/runtime.ts";
 
 const closed: GeoJSON.Polygon = {
   type: "Polygon",
@@ -115,5 +117,18 @@ if (!sql.sql.includes("ON CONFLICT")) throw new Error("upsert sql must be idempo
 const qsql = queryFeatureSql({ surface: "base", source: "osm" });
 if (qsql.args.length !== 2) throw new Error("query sql must bind filters");
 if (utmEpsgFromLon(46.7) !== 32638) throw new Error("Riyadh lon must map to UTM 38N");
+
+const snap = parseStore(serializeStore([parcel("s1", closed)], "memory"));
+if (snap.features.length !== 1 || snap.kind !== "planx-store-snapshot") {
+  throw new Error("snapshot round-trip");
+}
+try {
+  parseStore("{}");
+  throw new Error("bad snapshot must throw");
+} catch (e) {
+  if (e instanceof Error && e.message === "bad snapshot must throw") throw e;
+}
+const rt = await bootStore();
+if (rt.engine !== "memory") throw new Error("node boot must be memory");
 
 console.log("workbench draft + store checks passed");
