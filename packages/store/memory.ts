@@ -2,6 +2,7 @@ import type { Feature, Patch, Reject, Surface } from "../schema/index.ts";
 import { isReject } from "../schema/index.ts";
 import type { QueryFilter, Store } from "./types.ts";
 import { deriveParcel } from "../engines/parcel.ts";
+import { deriveStreet } from "../engines/street.ts";
 
 export type { QueryFilter, Store } from "./types.ts";
 
@@ -67,6 +68,19 @@ export class MemoryStore implements Store {
   }
 
   async put(feature: Feature): Promise<void> {
+    if (feature.source_ref) {
+      for (const [k, existing] of this.features) {
+        if (
+          existing.project_id === feature.project_id &&
+          existing.surface === feature.surface &&
+          existing.source === feature.source &&
+          existing.source_ref === feature.source_ref
+        ) {
+          this.features.delete(k);
+          break;
+        }
+      }
+    }
     this.features.set(this.key(feature.surface, feature.id), structuredClone(feature));
   }
 
@@ -111,8 +125,10 @@ export class MemoryStore implements Store {
         this.features.delete(this.key(p.feature.surface, p.feature.id));
       } else {
         const row = structuredClone(p.feature);
-        const derived = deriveParcel(row);
-        if (derived) row.props = { ...row.props, ...derived };
+        const parcel = deriveParcel(row);
+        const street = deriveStreet(row);
+        if (parcel) row.props = { ...row.props, ...parcel };
+        if (street) row.props = { ...row.props, ...street };
         this.features.set(this.key(row.surface, row.id), row);
       }
     }

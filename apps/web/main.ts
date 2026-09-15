@@ -74,20 +74,57 @@ async function refresh() {
   rowsEl.innerHTML = all
     .map((f) => {
       const area = f.props.area_m2 != null ? Number(f.props.area_m2).toFixed(0) : "—";
-      const front = f.props.frontage_estimated ? "تقدير" : f.props.frontage_m != null ? "—" : "—";
-      return `<tr><td>${f.kind}</td><td>${f.source}</td><td>${area}</td><td>${front}</td></tr>`;
+      const len = f.props.length_m != null ? Number(f.props.length_m).toFixed(0) : "—";
+      return `<tr><td>${f.kind}</td><td>${f.source}</td><td>${area}</td><td>${len}</td></tr>`;
     })
     .join("");
 }
 
+function draftFc(): GeoJSON.FeatureCollection {
+  if (!draft || draft.vertices.length === 0) {
+    return { type: "FeatureCollection", features: [] };
+  }
+  const geom: GeoJSON.Geometry =
+    draft.vertices.length === 1
+      ? { type: "Point", coordinates: draft.vertices[0] }
+      : { type: "LineString", coordinates: draft.vertices };
+  return {
+    type: "FeatureCollection",
+    features: [{ type: "Feature", geometry: geom, properties: {} }],
+  };
+}
+
+function paintDraft() {
+  const src = map.getSource("draft") as maplibregl.GeoJSONSource | undefined;
+  const fc = draftFc();
+  if (src) src.setData(fc);
+  else if (map.isStyleLoaded()) {
+    map.addSource("draft", { type: "geojson", data: fc });
+    map.addLayer({
+      id: "draft-line",
+      type: "line",
+      source: "draft",
+      paint: { "line-color": "#111", "line-width": 2, "line-dasharray": [2, 1] },
+    });
+    map.addLayer({
+      id: "draft-pt",
+      type: "circle",
+      source: "draft",
+      paint: { "circle-color": "#111", "circle-radius": 4 },
+    });
+  }
+}
+
 map.on("load", () => {
   void refresh();
+  paintDraft();
 });
 
 map.on("click", (e) => {
   if (!draft) return;
   draft = addVertex(draft, e.lngLat.lng, e.lngLat.lat);
   statusEl.textContent = `${draft.kind}: ${draft.vertices.length} رأس`;
+  paintDraft();
 });
 
 map.on("dblclick", async (e) => {
@@ -95,6 +132,7 @@ map.on("dblclick", async (e) => {
   e.preventDefault();
   const feat = closeDraft(draft, PROJECT);
   draft = null;
+  paintDraft();
   document.querySelectorAll("#tools button").forEach((b) => b.classList.remove("active"));
   if (!feat) {
     statusEl.textContent = "المسودة ناقصة";
@@ -124,6 +162,7 @@ document.getElementById("draw-street")!.addEventListener("click", (e) => {
 });
 document.getElementById("cancel")!.addEventListener("click", () => {
   draft = null;
+  paintDraft();
   document.querySelectorAll("#tools button").forEach((b) => b.classList.remove("active"));
   statusEl.textContent = "أُلغيت المسودة";
 });

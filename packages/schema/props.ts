@@ -3,6 +3,7 @@ import type { Cardinal } from "./index.ts";
 export interface StreetProps {
   name?: string;
   width_m?: number;
+  length_m?: number;
   highway?: string;
   section_id?: string;
 }

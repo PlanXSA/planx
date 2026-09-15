@@ -83,4 +83,29 @@ if (!closedDraft || closedDraft.geom.type !== "Polygon") throw new Error("draft 
 const two = closeDraft({ kind: "parcel", vertices: [[46.6, 24.7], [46.61, 24.7]] }, "p1");
 if (two) throw new Error("two vertices must not close a parcel");
 
+const stStore = new MemoryStore();
+const streetFeat: Feature = {
+  ...parcel("st1", closed),
+  kind: "street",
+  geom: { type: "LineString", coordinates: [[46.6, 24.7], [46.61, 24.7]] },
+};
+const stOut = await stStore.apply([{ op: "upsert", feature: streetFeat }]);
+if (isReject(stOut)) throw new Error("street line must apply");
+const stRow = await stStore.get("st1");
+if (!(Number(stRow?.props.length_m) > 0)) throw new Error("street must get length_m");
+
+const once: Feature = {
+  ...streetFeat,
+  id: "osm1",
+  surface: "base",
+  source: "osm",
+  source_ref: "way/10",
+};
+await stStore.put(once);
+await stStore.put({ ...once, id: "osm1b" });
+const osmOnly = (await stStore.query({ source: "osm", surface: "base" })).filter(
+  (r) => r.source_ref === "way/10",
+);
+if (osmOnly.length !== 1) throw new Error("re-import same source_ref must not duplicate");
+
 console.log("workbench draft + store checks passed");
