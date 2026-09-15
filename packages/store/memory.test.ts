@@ -78,4 +78,37 @@ describe("MemoryStore.apply", () => {
     const rows = await store.query({ surface: "base", source: "osm" });
     expect(rows).toHaveLength(1);
   });
+
+  it("mixed batch: good + unclosed writes nothing, rejects batch", async () => {
+    const store = new MemoryStore();
+    const good = parcel("good", closed);
+    const bad = parcel("bad", open);
+    // Apply both in a single batch.
+    const out = await store.apply([
+      { op: "upsert", feature: good },
+      { op: "upsert", feature: bad },
+    ]);
+    // Should reject the entire batch.
+    expect(isReject(out)).toBe(true);
+    if (isReject(out)) expect(out.reason).toBe("unclosed");
+    // Neither feature should be written.
+    expect(await store.get("good")).toBeNull();
+    expect(await store.get("bad")).toBeNull();
+  });
+
+  it("derives parcel props (area, frontage_estimated) on apply", async () => {
+    const store = new MemoryStore();
+    const f = parcel("p1", closed);
+    await store.apply([{ op: "upsert", feature: f }]);
+    const written = await store.get("p1");
+    expect(written).not.toBeNull();
+    if (written) {
+      // Props should contain derived parcel data.
+      expect(written.props.area_m2).toBeGreaterThan(0);
+      expect(written.props.frontage_estimated).toBe(true);
+      expect(written.props.vertices).toBeDefined();
+      expect(written.props.edges).toBeDefined();
+      expect(written.props.frontage_m).toBeGreaterThan(0);
+    }
+  });
 });

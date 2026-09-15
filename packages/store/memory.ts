@@ -1,6 +1,7 @@
 import type { Feature, Patch, Reject, Surface } from "../schema/index.ts";
 import { isReject } from "../schema/index.ts";
 import type { QueryFilter, Store } from "./types.ts";
+import { deriveParcel } from "../engines/parcel.ts";
 
 export type { QueryFilter, Store } from "./types.ts";
 
@@ -96,6 +97,7 @@ export class MemoryStore implements Store {
 
   async apply(patches: Patch[]): Promise<Patch[] | Reject> {
     const snapshot = new Map(this.features);
+    // Validate all patches before writing any.
     for (const p of patches) {
       if (p.op === "upsert") {
         const reject = topology(p.feature);
@@ -105,11 +107,18 @@ export class MemoryStore implements Store {
         }
       }
     }
+    // All validation passed; write patches and derive parcel properties.
     for (const p of patches) {
       if (p.op === "delete") {
         this.features.delete(this.key(p.feature.surface, p.feature.id));
       } else {
-        this.features.set(this.key(p.feature.surface, p.feature.id), structuredClone(p.feature));
+        const feature = structuredClone(p.feature);
+        // Merge derived parcel properties into props on upsert.
+        if (feature.kind === "parcel") {
+          const derived = deriveParcel(feature);
+          feature.props = { ...feature.props, ...derived };
+        }
+        this.features.set(this.key(feature.surface, feature.id), feature);
       }
     }
     return patches;

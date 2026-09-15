@@ -31,6 +31,7 @@ export interface ParcelProps {
   edges?: ParcelEdge[];
   neighbors?: ParcelNeighbor[];
   frontage_m?: number;
+  frontage_estimated?: boolean;
   coverage?: number;
   floors?: number;
 }
