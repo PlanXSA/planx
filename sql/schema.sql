@@ -1,0 +1,1 @@
+-- Plan X DuckDB Spatial DDL lives in the local worktree; next commit.
