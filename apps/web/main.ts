@@ -3,6 +3,12 @@ import { MemoryStore } from "../../packages/store/memory.ts";
 import { isReject, type Feature } from "../../packages/schema/index.ts";
 import { fetchOverpass } from "../../packages/adapters/osm/overpass.ts";
 import { addVertex, closeDraft, type Draft } from "../../packages/engines/draft.ts";
+import {
+  DEFAULT_CENTER,
+  DEFAULT_ZOOM,
+  OPENFREEMAP_STYLE,
+  OSM_RASTER_STYLE,
+} from "../../packages/maps/basemap.ts";
 
 const PROJECT = "demo-riyadh";
 const BBOX = { south: 24.68, west: 46.67, north: 24.72, east: 46.72 };
@@ -14,20 +20,12 @@ let draft: Draft | null = null;
 
 const map = new maplibregl.Map({
   container: "map",
-  style: {
-    version: 8,
-    sources: {
-      osm: {
-        type: "raster",
-        tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-        tileSize: 256,
-        attribution: "© OpenStreetMap",
-      },
-    },
-    layers: [{ id: "osm", type: "raster", source: "osm" }],
-  },
-  center: [46.695, 24.7],
-  zoom: 14,
+  style: OPENFREEMAP_STYLE,
+  center: DEFAULT_CENTER,
+  zoom: DEFAULT_ZOOM,
+});
+map.on("error", () => {
+  if (!map.getSource("osm")) map.setStyle(OSM_RASTER_STYLE);
 });
 map.addControl(new maplibregl.NavigationControl(), "top-left");
 

@@ -3,6 +3,8 @@ import { isReject, type Feature } from "../packages/schema/index.ts";
 import { kindFromOsmTags } from "../packages/adapters/osm/map.ts";
 import { featuresFromOverpass } from "../packages/adapters/osm/overpass.ts";
 import { addVertex, closeDraft } from "../packages/engines/draft.ts";
+import { upsertFeatureSql, queryFeatureSql } from "../packages/store/sql.ts";
+import { utmEpsgFromLon } from "../packages/geo/crs.ts";
 
 const closed: GeoJSON.Polygon = {
   type: "Polygon",
@@ -107,5 +109,11 @@ const osmOnly = (await stStore.query({ source: "osm", surface: "base" })).filter
   (r) => r.source_ref === "way/10",
 );
 if (osmOnly.length !== 1) throw new Error("re-import same source_ref must not duplicate");
+
+const sql = upsertFeatureSql(parcel("q1", closed));
+if (!sql.sql.includes("ON CONFLICT")) throw new Error("upsert sql must be idempotent");
+const qsql = queryFeatureSql({ surface: "base", source: "osm" });
+if (qsql.args.length !== 2) throw new Error("query sql must bind filters");
+if (utmEpsgFromLon(46.7) !== 32638) throw new Error("Riyadh lon must map to UTM 38N");
 
 console.log("workbench draft + store checks passed");

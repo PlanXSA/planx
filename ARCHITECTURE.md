@@ -30,8 +30,9 @@ adapters → store ←→ engines → app
 | slice | contents                                      | status      |
 |-------|-----------------------------------------------|-------------|
 | 1     | types, DuckDB DDL, MemoryStore, atomic apply  | done        |
-| 1b    | Overpass parser + read-only MapLibre shell    | local now   |
-| 2     | draw + topology + street ROW                  | next        |
+| 1b    | Overpass + MapLibre workbench                 | done        |
+| 1c    | DuckDB SQL contract + OpenFreeMap + CRS helper| in progress |
+| 2     | street ROW / frontage snap                    | later       |
 | 3     | use column + area table + min code            | later       |
 | 4     | GeoJSON / CSV export                          | later       |
 

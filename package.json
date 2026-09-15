@@ -10,6 +10,7 @@
     "check": "node --experimental-strip-types scripts/check.mts"
   },
   "dependencies": {
+    "@duckdb/duckdb-wasm": "^1.29.0",
     "maplibre-gl": "^4.7.1"
   },
   "devDependencies": {
