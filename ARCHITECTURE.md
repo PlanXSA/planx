@@ -29,8 +29,9 @@ adapters → store ←→ engines → app
 
 | slice | contents                                      | status      |
 |-------|-----------------------------------------------|-------------|
-| 1     | types, DuckDB DDL, MemoryStore, atomic apply  | this tree   |
-| 2     | draw + topology + street ROW + parcel derive  | next        |
+| 1     | types, DuckDB DDL, MemoryStore, atomic apply  | done        |
+| 1b    | Overpass parser + read-only MapLibre shell    | local now   |
+| 2     | draw + topology + street ROW                  | next        |
 | 3     | use column + area table + min code            | later       |
 | 4     | GeoJSON / CSV export                          | later       |
 
@@ -43,7 +44,8 @@ planx/
   sql/schema.sql
   packages/schema/
   packages/store/
-  packages/adapters/osm/     # slice 1: tag map only
-  packages/engines/          # empty until slice 2
+  packages/adapters/osm/     # tag map + Overpass
+  packages/engines/parcel.ts
+  apps/web/                  # MapLibre read + import button
   ARCHITECTURE.md
 ```
