@@ -6,10 +6,11 @@ export function upsertFeatureSql(f: Feature): { sql: string; args: unknown[] } {
     sql: `
 INSERT INTO features (
   id, project_id, surface, geom, kind, use, source, source_ref,
-  confidence, code_status, props, created_at, updated_at
+  confidence, code_status, props, length_m, area_m2, frontage_m,
+  measure_epsg, measure_at, created_at, updated_at
 ) VALUES (
-  ?, ?, ?, ST_GeomFromGeoJSON(?)::GEOMETRY, ?, ?, ?, ?,
-  ?, ?, ?::JSON, ?, ?
+  ?, ?, ?, ST_SetSRID(ST_GeomFromGeoJSON(?), 4326), ?, ?, ?, ?,
+  ?, ?, ?::JSON, ?, ?, ?, ?, ?, ?, ?
 )
 ON CONFLICT (surface, id) DO UPDATE SET
   geom = excluded.geom,
@@ -18,6 +19,11 @@ ON CONFLICT (surface, id) DO UPDATE SET
   source = excluded.source,
   source_ref = excluded.source_ref,
   props = excluded.props,
+  length_m = excluded.length_m,
+  area_m2 = excluded.area_m2,
+  frontage_m = excluded.frontage_m,
+  measure_epsg = excluded.measure_epsg,
+  measure_at = excluded.measure_at,
   updated_at = excluded.updated_at
 `,
     args: [
@@ -32,6 +38,11 @@ ON CONFLICT (surface, id) DO UPDATE SET
       f.confidence ?? null,
       f.code_status,
       JSON.stringify(f.props ?? {}),
+      f.length_m ?? null,
+      f.area_m2 ?? null,
+      f.frontage_m ?? null,
+      f.measure_epsg ?? null,
+      f.measure_at ?? null,
       f.created_at,
       f.updated_at,
     ],

@@ -1,6 +1,5 @@
 import type { Feature, Patch, Reject, Surface } from "../schema/index.ts";
-import { deriveParcel } from "../engines/parcel.ts";
-import { deriveStreet } from "../engines/street.ts";
+import { applyMeasures, belowMinArea, streetTooShort } from "../engines/measure.ts";
 import { topology } from "./memory.ts";
 import {
   deleteFeatureSql,
@@ -28,6 +27,11 @@ function rowToFeature(row: Record<string, unknown>): Feature {
     confidence: row.confidence as number | undefined,
     code_status: row.code_status as Feature["code_status"],
     props: typeof row.props === "string" ? JSON.parse(row.props) : (row.props as Record<string, unknown>) ?? {},
+    length_m: row.length_m == null ? undefined : Number(row.length_m),
+    area_m2: row.area_m2 == null ? undefined : Number(row.area_m2),
+    frontage_m: row.frontage_m == null ? undefined : Number(row.frontage_m),
+    measure_epsg: row.measure_epsg == null ? undefined : Number(row.measure_epsg),
+    measure_at: row.measure_at == null ? undefined : String(row.measure_at),
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
   };
@@ -35,7 +39,10 @@ function rowToFeature(row: Record<string, unknown>): Feature {
 
 /** Same Store contract as MemoryStore. Requires a live DuckDB Spatial exec. */
 export class DuckStore implements Store {
-  constructor(private exec: SqlExec) {}
+  private exec: SqlExec;
+  constructor(exec: SqlExec) {
+    this.exec = exec;
+  }
 
   async put(feature: Feature): Promise<void> {
     if (feature.source_ref && feature.source === "osm") {
@@ -66,7 +73,7 @@ export class DuckStore implements Store {
   async slice(boundary: GeoJSON.Polygon, surface: Surface): Promise<Feature[]> {
     const rows = await this.exec(
       `SELECT *, ST_AsGeoJSON(geom) AS geom_json FROM features
-       WHERE surface = ? AND ST_Intersects(geom, ST_GeomFromGeoJSON(?))`,
+       WHERE surface = ? AND ST_Intersects(geom, ST_SetSRID(ST_GeomFromGeoJSON(?), 4326))`,
       [surface, JSON.stringify(boundary)],
     );
     return rows.map(rowToFeature);
@@ -84,11 +91,13 @@ export class DuckStore implements Store {
         await this.delete(p.feature.id, p.feature.surface);
         continue;
       }
-      const row = { ...p.feature, props: { ...p.feature.props } };
-      const parcel = deriveParcel(row);
-      const street = deriveStreet(row);
-      if (parcel) Object.assign(row.props, parcel);
-      if (street) Object.assign(row.props, street);
+      const row = applyMeasures({ ...p.feature, props: { ...p.feature.props } });
+      if (belowMinArea(row)) {
+        return { ok: false, reason: "below_min_area", message: "parcel area below minimum" };
+      }
+      if (streetTooShort(row)) {
+        return { ok: false, reason: "too_short", message: "street shorter than 0.05 m" };
+      }
       const q = upsertFeatureSql(row);
       await this.exec(q.sql, q.args);
     }

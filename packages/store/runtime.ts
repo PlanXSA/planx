@@ -1,5 +1,6 @@
 import { MemoryStore } from "./memory.ts";
 import type { Store } from "./types.ts";
+import { bootStoreWithFallback } from "./wasm.ts";
 
 export interface Runtime {
   store: Store;
@@ -8,30 +9,18 @@ export interface Runtime {
 }
 
 /**
- * Slice 1c: try DuckDB-WASM. On any failure keep MemoryStore and say so.
- * Live WASM instantiate is browser-only; Node/check uses memory.
+ * Slice 1c: instantiate DuckDB-WASM + spatial in the browser.
+ * Any failure keeps MemoryStore and a visible note.
  */
 export async function bootStore(): Promise<Runtime> {
-  if (typeof window === "undefined") {
-    return {
-      store: new MemoryStore(),
-      engine: "memory",
-      note: "MemoryStore (no window — DuckDB-WASM is browser-only here)",
-    };
-  }
   try {
-    await import("@duckdb/duckdb-wasm");
-    return {
-      store: new MemoryStore(),
-      engine: "memory",
-      note: "DuckDB-WASM module found; Spatial boot + file export is next wire. MemoryStore active.",
-    };
+    return await bootStoreWithFallback();
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "wasm import failed";
+    const msg = err instanceof Error ? err.message : "boot failed";
     return {
       store: new MemoryStore(),
       engine: "memory",
-      note: `DuckDB-WASM unavailable — MemoryStore. ${msg}`,
+      note: `boot fallback MemoryStore. ${msg}`,
     };
   }
 }

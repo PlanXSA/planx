@@ -8,39 +8,92 @@
     <style>
       * { box-sizing: border-box; }
       html, body { margin: 0; height: 100%; font-family: Tahoma, sans-serif; }
-      #layout { display: grid; grid-template-columns: 220px 1fr 280px; grid-template-rows: 44px 1fr; height: 100%; }
-      #phase { grid-column: 1 / 4; background: #111; color: #fff; display: flex; align-items: center; gap: 16px; padding: 0 12px; font-size: 14px; }
-      #tools { background: #1c1c1c; color: #eee; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-      #map { min-width: 0; }
+      #layout {
+        display: grid;
+        grid-template-columns: 240px 1fr 320px;
+        grid-template-rows: 48px 1fr 28px;
+        height: 100%;
+      }
+      #phase {
+        grid-column: 1 / 4;
+        background: #111;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 0 12px;
+        font-size: 13px;
+      }
+      #tools { background: #1c1c1c; color: #eee; padding: 12px; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
+      #map { min-width: 0; position: relative; }
       #table { background: #f4f4f4; overflow: auto; font-size: 12px; padding: 8px; }
+      #hud {
+        grid-column: 1 / 4;
+        background: #0b1220;
+        color: #cde;
+        font-size: 11px;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        padding: 0 12px;
+        font-variant-numeric: tabular-nums;
+      }
       button { width: 100%; padding: 8px; cursor: pointer; }
       button.active { outline: 2px solid #f97316; }
       table { width: 100%; border-collapse: collapse; }
       th, td { border-bottom: 1px solid #ddd; padding: 4px; text-align: right; }
+      .layer { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+      h4 { margin: 12px 0 4px; font-size: 12px; }
+      #totals { margin-top: 8px; background: #fff; padding: 8px; }
     </style>
   </head>
   <body>
     <div id="layout">
-      <div id="phase">Plan X · <span id="status">اختر أداة</span></div>
+      <div id="phase">Plan X · مخزن متري · <span id="status">اختر أداة</span></div>
       <div id="tools">
         <button id="import">استيراد المربع</button>
         <button id="draw-parcel">رسم قطعة</button>
         <button id="draw-street">رسم شارع</button>
         <button id="cancel">إلغاء المسودة</button>
         <button id="save">حفظ الملف</button>
+        <button id="csv">تصدير CSV</button>
         <button id="open">فتح ملف</button>
         <input id="open-file" type="file" accept="application/json,.json" hidden />
-        <p style="font-size:12px;opacity:.8">نقرة تضيف رأساً. النقرة المزدوجة تغلق وتبني الجدول. الحفظ الآن لقطة JSON حتى يقلع DuckDB.</p>
-        <strong style="font-size:12px">تعارضات</strong>
+        <p style="font-size:12px;opacity:.8">
+          التخزين 4326. الأمتار UTM من مركز المشروع. النقرة رأس، المزدوجة تُغلق وتكتب الصف.
+        </p>
+        <h4>طبقات</h4>
+        <label class="layer"><input type="checkbox" data-layer="planx-line" checked /> شوارع</label>
+        <label class="layer"><input type="checkbox" data-layer="planx-fill" checked /> قطع</label>
+        <label class="layer"><input type="checkbox" data-layer="planx-fill-line" checked /> حدود القطع</label>
+        <label class="layer"><input type="checkbox" data-layer="planx-pt" checked /> نقاط</label>
+        <label class="layer"><input type="checkbox" data-layer="planx-label" checked /> أبعاد</label>
+        <label class="layer"><input type="checkbox" data-layer="draft-line" checked /> مسودة</label>
+        <h4>تعارضات</h4>
         <ul id="conflicts" style="font-size:12px;padding-right:16px;"></ul>
       </div>
       <div id="map"></div>
       <div id="table">
-        <strong>سجل المعالم</strong>
+        <strong>جداول من المخزن</strong>
         <table>
-          <thead><tr><th>نوع</th><th>مصدر</th><th>مساحة م²</th><th>طول م</th></tr></thead>
+          <thead>
+            <tr>
+              <th>نوع</th>
+              <th>استعمال</th>
+              <th>مساحة م²</th>
+              <th>واجهة م</th>
+              <th>طول م</th>
+              <th>EPSG</th>
+            </tr>
+          </thead>
           <tbody id="rows"></tbody>
         </table>
+        <div id="totals">المجموع: —</div>
+      </div>
+      <div id="hud">
+        <span id="hud-ll">λ —  φ —</span>
+        <span id="hud-utm">UTM —</span>
+        <span id="hud-draft">مسودة —</span>
       </div>
     </div>
     <script type="module" src="./main.ts"></script>

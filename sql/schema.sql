@@ -3,6 +3,10 @@ LOAD spatial;
 
 CREATE TABLE projects (
   id           UUID PRIMARY KEY,
+  title        VARCHAR,
+  planner_name VARCHAR,
+  org_name     VARCHAR,
+  city_name    VARCHAR,
   boundary     GEOMETRY NOT NULL,
   phase        VARCHAR NOT NULL,
   codepack_id  UUID,
@@ -25,6 +29,11 @@ CREATE TABLE features (
   confidence   DOUBLE,
   code_status  VARCHAR NOT NULL DEFAULT 'unknown',
   props        JSON NOT NULL DEFAULT '{}',
+  length_m     DOUBLE,
+  area_m2      DOUBLE,
+  frontage_m   DOUBLE,
+  measure_epsg INTEGER,
+  measure_at   TIMESTAMP,
   row_geom     GEOMETRY,
   created_at   TIMESTAMP NOT NULL,
   updated_at   TIMESTAMP NOT NULL,
@@ -34,7 +43,10 @@ CREATE TABLE features (
   CHECK (source IN ('osm','balady','planx','user')),
   CHECK (code_status IN ('ok','violate','unknown')),
   CHECK (ST_SRID(geom) = 4326),
-  CHECK (row_geom IS NULL OR ST_SRID(row_geom) = 4326)
+  CHECK (row_geom IS NULL OR ST_SRID(row_geom) = 4326),
+  CHECK (length_m IS NULL OR length_m >= 0),
+  CHECK (area_m2 IS NULL OR area_m2 >= 0),
+  CHECK (frontage_m IS NULL OR frontage_m >= 0)
 );
 
 CREATE INDEX features_project_idx     ON features (project_id);
@@ -56,3 +68,15 @@ CREATE TABLE conflicts (
 );
 
 CREATE INDEX conflicts_project_idx ON conflicts (project_id);
+
+CREATE TABLE use_defs (
+  project_id          UUID NOT NULL,
+  key                 VARCHAR NOT NULL,
+  label               VARCHAR NOT NULL,
+  color               VARCHAR,
+  default_height_m    DOUBLE,
+  default_coverage    DOUBLE,
+  min_area_m2         DOUBLE,
+  PRIMARY KEY (project_id, key),
+  CHECK (min_area_m2 IS NULL OR min_area_m2 >= 0)
+);

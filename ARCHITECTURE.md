@@ -6,8 +6,7 @@ adapters → store ←→ engines → app
 
 - Adapters write stock only (`put`).
 - Draw goes topology then `apply`. Never a lone write that skips the chain.
-- Engines return `Patch[]` or `Reject`.
-- App talks to `Store.query` and `Engine.run` only.
+- Engines stamp metre columns. App reads `Store.query` only for numbers.
 
 ## Surfaces
 
@@ -23,32 +22,36 @@ adapters → store ←→ engines → app
 |-----------------------------|---------------|
 | store + exchange            | EPSG:4326     |
 | map tiles                   | EPSG:3857     |
-| length, area, frontage, ROW | UTM per project centroid |
+| length, area, frontage      | UTM per first vertex / project (`measure_epsg`) |
 
 ## Slice map
 
-| slice | contents                                      | status      |
-|-------|-----------------------------------------------|-------------|
-| 1     | types, DuckDB DDL, MemoryStore, atomic apply  | done        |
-| 1b    | Overpass parser + workbench shell             | source done; browser unproven |
-| 1c    | 1) Vite+MapLibre in a browser  2) DuckDB-WASM runs schema.sql  3) download/upload .duckdb (no OPFS) | next |
-| 2     | street ROW / frontage snap                    | later       |
-| 3     | use column + area table + min code            | later       |
-| 4     | GeoJSON / CSV export                          | later       |
+| slice | contents | status |
+|-------|----------|--------|
+| 1 | types, DDL, MemoryStore, atomic apply | done |
+| 1b | Overpass parser + workbench shell | done in source; Overpass 504 still possible in browser |
+| 1c | MapLibre in browser; DuckDB-WASM Spatial boot; JSON save/open; MemoryStore fallback | wired 2026-09-16; browser Spatial depends on extension CDN |
+| 1d | UTM metres on columns; use_defs soft min area; UI reads stored numbers; layer HUD; CSV | done |
+| 2 | street ROW / frontage snap | later |
+| 3 | codepack on use | later |
+| 4 | GeoJSON / GPKG export | CSV done; GeoJSON later |
 
-Slice 1c locks (from docs/PLANX_SLICE_1C_REVIEW.md): bbox demo cap ~0.02° per side; WASM failure keeps MemoryStore + visible banner; OSM/user overlap is a visible conflict, not a silent row. Save path is file download/upload only.
+تفاصيل التعديلات: `CHANGELOG.md`.
 
-Out of v0: massing 3D, Balady without a contract, multi-user, PostGIS, paid basemap, OPFS, street section geometry.
+Locks: bbox demo ~0.02°; WASM failure keeps MemoryStore + banner; OSM/user overlap is visible; save is download/upload, no OPFS; `measure_epsg` is a real UTM code, never 0.
 
-## Repo layout
+Out of v0: massing 3D, Balady without a contract, multi-user, PostGIS, paid basemap, OPFS, street section geometry, parcel fabric classes.
+
+## Layout
 
 ```
 planx/
   sql/schema.sql
   packages/schema/
-  packages/store/
-  packages/adapters/osm/     # tag map + Overpass
-  packages/engines/parcel.ts
-  apps/web/                  # MapLibre read + import button
-  ARCHITECTURE.md
+  packages/geo/crs.ts
+  packages/store/     memory, duck, wasm, snapshot
+  packages/engines/   draft, parcel, street, measure
+  packages/adapters/osm/
+  packages/maps/
+  apps/web/
 ```

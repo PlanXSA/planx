@@ -1,29 +1,43 @@
 # Plan X
 
-Nucleus of an open-source urban-planning workbench.
+Open-source spatial workbench for urban planning. Drawing writes store rows. Tables read those rows. Not CAD, not BIM, not ArcGIS Pro.
 
-**Slice 1 (this commit):** TypeScript contracts, DuckDB DDL, in-memory store that proves atomic `apply` (reject writes nothing), and `put` for OSM/base import.
+## Now
 
-Live spatial store in production path: DuckDB Spatial (`sql/schema.sql`).  
-Map / Terra Draw / OSM fetch: later slices.
-
-See `ARCHITECTURE.md` for the slice map and layer diagram.
-
-## Spec
-
-- Contracts: Feature / Street / Parcel, three surfaces, `put` vs `apply`
-- OSM: streets and amenities only; buildings are not parcels
+- MapLibre + OpenFreeMap (OSM raster fallback)
+- Store: MemoryStore or DuckDB-WASM Spatial in the browser
+- Metres: WGS84 → project UTM (`packages/geo/crs.ts`), columns `length_m` / `area_m2` / `frontage_m`
+- `apply` is atomic: topology → measures → commit or nothing
+- `use_defs` is an open dictionary; missing key does not fail the row
+- Save/open JSON snapshot; CSV from stored columns
+- OSM Overpass import (bbox ~0.02°); buildings are not parcels
 
 ## Run
 
 ```bash
 npm install
-npm test
+npm run check
+npm run dev
 ```
+
+Workbench: `http://localhost:5173`
+
+Node never instantiates WASM. If Spatial fails in the browser, MemoryStore stays and the status bar says so.
+
+## Docs
+
+| File | Role |
+|---|---|
+| `CHANGELOG.md` | تفاصيل التعديلات في الملفات والكود |
+| `ARCHITECTURE.md` | Locks and slices |
+| `docs-measures.md` | Metre contract |
+| `docs-model.md` | Data model vs ArcGIS mechanism |
+| `docs-duckdb-wasm.md` | WASM Spatial boot |
+| `docs-expert-review-20260916.md` | Last expert pass |
 
 ## GitHub
 
-Account: [PlanXSA](https://github.com/PlanXSA). Create repo `planx` if the connector cannot. Then push this tree.
+https://github.com/PlanXSA/planx — push after a slice is accepted. Connector writes are 403 until scopes are fixed.
 
 ## License
 

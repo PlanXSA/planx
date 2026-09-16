@@ -1,8 +1,7 @@
-import type { Feature, Patch, Reject, Surface } from "../schema/index.ts";
+import type { Feature, Patch, Reject, Surface, UseDef } from "../schema/index.ts";
 import { isReject } from "../schema/index.ts";
 import type { QueryFilter, Store } from "./types.ts";
-import { deriveParcel } from "../engines/parcel.ts";
-import { deriveStreet } from "../engines/street.ts";
+import { applyMeasures, belowMinArea, minAreaFor, streetTooShort } from "../engines/measure.ts";
 
 export type { QueryFilter, Store } from "./types.ts";
 
@@ -57,11 +56,21 @@ export function topology(feature: Feature): Reject | null {
       return { ok: false, reason: "self_intersection", message: "parcel self-intersects" };
     }
   }
+  if (feature.kind === "street" || feature.kind === "path") {
+    if (feature.geom.type !== "LineString" || feature.geom.coordinates.length < 2) {
+      return { ok: false, reason: "too_short", message: "street needs two vertices" };
+    }
+  }
   return null;
 }
 
 export class MemoryStore implements Store {
   private features = new Map<string, Feature>();
+  private useDefs = new Map<string, UseDef>();
+
+  putUseDef(def: UseDef): void {
+    this.useDefs.set(`${def.project_id}:${def.key}`, def);
+  }
 
   private key(surface: Surface, id: string) {
     return `${surface}:${id}`;
@@ -124,11 +133,20 @@ export class MemoryStore implements Store {
       if (p.op === "delete") {
         this.features.delete(this.key(p.feature.surface, p.feature.id));
       } else {
-        const row = structuredClone(p.feature);
-        const parcel = deriveParcel(row);
-        const street = deriveStreet(row);
-        if (parcel) row.props = { ...row.props, ...parcel };
-        if (street) row.props = { ...row.props, ...street };
+        const row = applyMeasures(structuredClone(p.feature));
+        const floor = minAreaFor(row, this.useDefs.values());
+        if (belowMinArea(row, floor)) {
+          this.features = snapshot;
+          return {
+            ok: false,
+            reason: "below_min_area",
+            message: "parcel area below minimum",
+          };
+        }
+        if (streetTooShort(row)) {
+          this.features = snapshot;
+          return { ok: false, reason: "too_short", message: "street shorter than 0.05 m" };
+        }
         this.features.set(this.key(row.surface, row.id), row);
       }
     }

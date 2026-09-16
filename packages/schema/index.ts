@@ -34,13 +34,32 @@ export interface Feature {
   confidence?: number;
   code_status: CodeStatus;
   props: Record<string, unknown>;
+  length_m?: number;
+  area_m2?: number;
+  frontage_m?: number;
+  measure_epsg?: number;
+  measure_at?: string;
   row_geom?: GeoJSON.Polygon;
   created_at: string;
   updated_at: string;
 }
 
+export interface UseDef {
+  project_id: string;
+  key: string;
+  label: string;
+  color?: string;
+  default_height_m?: number;
+  default_coverage?: number;
+  min_area_m2?: number;
+}
+
 export interface Project {
   id: string;
+  title?: string;
+  planner_name?: string;
+  org_name?: string;
+  city_name?: string;
   boundary: GeoJSON.Polygon;
   phase: Phase;
   codepack_id?: string;
@@ -58,7 +77,8 @@ export type RejectReason =
   | "self_intersection"
   | "overlap_parcel"
   | "unclosed"
-  | "below_min_area";
+  | "below_min_area"
+  | "too_short";
 
 export interface Reject {
   ok: false;
