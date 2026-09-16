@@ -21,8 +21,34 @@ Spatial workbench for one planner (Ahmed). Drawing creates the table. Not CAD, n
 - Re-import never deletes `source=user`.
 - Metrics first in TypeScript on `apply`. v0 is one user.
 
+## Layout
+
+```
+sql/schema.sql
+packages/schema/
+packages/store/          MemoryStore now; DuckDB behind the same Store API later
+packages/adapters/osm/   tag map only in slice 1
+packages/engines/        empty until slice 2
+scripts/check.mts        zero-dep contract check
+```
+
 ## How to verify
 
 ```bash
 npm install
 npm test
+npm run typecheck
+```
+
+If `scripts/check.mts` exists: `node --experimental-strip-types scripts/check.mts`
+
+Do not merge if tests fail. Do not weaken an existing test to make a change pass.
+
+## How to change code
+
+- One slice per PR. Title = slice intent, not a file list.
+- Keep `apply` atomic. An open parcel must write nothing.
+- Do not treat OSM buildings as parcels.
+- Do not invent product features (3D, multiplayer, PostGIS, learning engine).
+- Prefer extending MemoryStore tests over rewriting the store.
+- Parcel/street attribute tables come from drawing, not from typed forms.

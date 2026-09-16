@@ -1,0 +1,44 @@
+name: Slice
+description: One build slice with acceptance tests. Assign Copilot only after the slice is accepted.
+title: "slice: "
+labels: [slice]
+body:
+  - type: textarea
+    id: intent
+    attributes:
+      label: Intent
+      description: One sentence. What Ahmed can do after this slice.
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: Files
+      description: Paths the agent may touch. Empty means it must propose paths first, not invent a tree.
+    validations:
+      required: true
+  - type: textarea
+    id: accept
+    attributes:
+      label: Acceptance
+      description: Tests or checks that must pass. Quote existing tests when they already cover the rule.
+    validations:
+      required: true
+  - type: textarea
+    id: locks
+    attributes:
+      label: Locks
+      value: |
+        - apply is atomic
+        - building ≠ parcel
+        - store 4326, metres from project UTM
+        - no PostGIS, no 3D, no multi-user
+    validations:
+      required: true
+  - type: checkboxes
+    id: ready
+    attributes:
+      label: Ready for Copilot
+      options:
+        - label: Slice accepted by owner
+        - label: Scope fits in one PR
